@@ -67,9 +67,10 @@ GitHub Pages: <https://realkai42.github.io/qwerty-learner/>
 
 服务器需要提前准备：
 
-1. `/home/ubuntu/qwerty-learner` 是本项目 Git 工作树，并能拉取 `origin/master`。
-2. `/home/ubuntu/env/gateway-nginx/.env` 已配置 `qwerty.codeplain.cloud` 和腾讯云证书路径。
-3. `public-gateway` Docker 网络已创建；网关会通过 `qwerty-learner:3001` 访问本服务。
+1. `/home/ubuntu` 下如果已有 `qwerty-learner`，它必须是 Git 工作树；如果不存在，Action 会自动从 `git@github.com:KInWonderland/qwerty-learner.git` 克隆 `master` 分支。
+2. 服务器登录用户需要配置 GitHub Deploy Key，以便 Action 在首次部署时执行 `git clone`。
+3. `/home/ubuntu/env/gateway-nginx/.env` 已配置 `qwerty.codeplain.cloud` 和腾讯云证书路径。
+4. `public-gateway` Docker 网络已创建；网关会通过 `qwerty-learner:3001` 访问本服务。
 
 在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中配置：
 
