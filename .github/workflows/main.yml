@@ -24,6 +24,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 30m
           script: |
             set -eu
 
@@ -57,6 +58,8 @@ jobs:
               cd "$PROJECT_DIR"
             fi
 
+            export DOCKER_BUILDKIT=1
+            export COMPOSE_DOCKER_CLI_BUILD=1
             docker compose up -d --build --remove-orphans
 
       - name: Send Telegram notification
