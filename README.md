@@ -51,12 +51,37 @@ GitHub Pages: <https://realkai42.github.io/qwerty-learner/>
 
 ### Vercel
 
+> 注意: 登录与 SQLite 数据同步功能依赖 Node.js 后端服务。静态部署(Vercel / GitHub Pages)仅提供前端页面, 无法注册登录;
+> 如需使用账号与数据同步, 请使用 Docker 或本地 `yarn dev` 方式运行。
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FRealKai42%2Fqwerty-learner)
 
 #### 部署步骤
 
 1. 更新 `Vercel Build & Development Settings` -> `Output Directory`："build"
 2. Click Deploy Button
+
+### Docker / 腾讯云服务器
+
+生产环境通过 `.github/workflows/main.yml` 自动部署。向 `master` 分支推送后，GitHub Actions 会 SSH 连接服务器，在 `/home/ubuntu/qwerty-learner` 构建并重启 Docker 服务，同时向 Telegram 发送成功或失败通知。
+
+服务器需要提前准备：
+
+1. `/home/ubuntu/qwerty-learner` 是本项目 Git 工作树，并能拉取 `origin/master`。
+2. `/home/ubuntu/env/gateway-nginx/.env` 已配置 `qwerty.codeplain.cloud` 和腾讯云证书路径。
+3. `public-gateway` Docker 网络已创建；网关会通过 `qwerty-learner:3001` 访问本服务。
+
+在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中配置：
+
+| Secret | 用途 |
+| --- | --- |
+| `SERVER_HOST` | 服务器公网 IP 或域名 |
+| `SERVER_USER` | SSH 登录用户 |
+| `SERVER_SSH_KEY` | SSH 私钥全文 |
+| `TELEGRAM_TO` | Telegram chat ID |
+| `TELEGRAM_TOKEN` | Telegram Bot Token |
+
+部署完成后访问：<https://qwerty.codeplain.cloud/>。
 
 <br />
 
@@ -166,8 +191,14 @@ GitHub Pages: <https://realkai42.github.io/qwerty-learner/>
 
 1. 在命令行中执行 `git clone https://github.com/RealKai42/qwerty-learner.git` 将项目拉取到本地, 如果不使用 git 可能因为缺少依赖而无法运行
 2. 在命令行中执行 `cd qwerty-learner`，进入项目根目录，执行`yarn install`来下载依赖。
-3. 执行`yarn start`来启动项目，项目默认地址为`http://localhost:5173/`
-4. 在浏览器中打开`http://localhost:5173/`来访问项目。
+3. 执行`yarn dev`来同时启动前端和后端服务（后端使用 SQLite 保存登录账号与练习数据），前端默认地址为`http://localhost:5173/`
+4. 在浏览器中打开`http://localhost:5173/`来访问项目，首次使用需要先注册账号。
+
+> **数据存储说明**
+>
+> - 用户账号、设置项与练习记录（原本仅保存在浏览器 localStorage / IndexedDB 中）现在会同步保存到服务端的 SQLite 数据库中。
+> - 数据库文件默认位于 `data/qwerty-learner.db`，可通过环境变量 `SQLITE_PATH` 修改路径，通过环境变量 `PORT` 修改后端端口（默认 `3001`）。
+> - 注册密码不做复杂度限制，任意非空密码（包括纯数字）均可。
 
 ### 脚本执行
 

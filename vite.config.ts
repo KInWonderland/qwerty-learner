@@ -12,7 +12,14 @@ import type { PluginOption } from 'vite'
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
   const latestCommitHash = await new Promise<string>((resolve) => {
-    return getLastCommit((err, commit) => (err ? 'unknown' : resolve(commit.shortHash)))
+    getLastCommit((err, commit) => {
+      if (err || !commit) {
+        resolve('unknown')
+        return
+      }
+
+      resolve(commit.shortHash)
+    })
   })
   return {
     plugins: [
@@ -32,6 +39,12 @@ export default defineConfig(async ({ mode }) => {
       minify: true,
       outDir: 'build',
       sourcemap: false,
+    },
+    server: {
+      port: 5173,
+      proxy: {
+        '/api': 'http://localhost:3001',
+      },
     },
     esbuild: {
       drop: mode === 'development' ? [] : ['console', 'debugger'],

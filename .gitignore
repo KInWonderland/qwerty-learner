@@ -29,6 +29,9 @@ pnpm-lock.yaml
 .env
 stats.html
 
+# SQLite 数据库文件
+/data
+
 .idea
 /test-results/
 /blob-report/

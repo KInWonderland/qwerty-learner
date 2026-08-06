@@ -1,9 +1,22 @@
-version: '3'
-
 services:
   qwertylearner:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '8990:5173'
+      # 保留本机调试入口；公网流量统一从 gateway-nginx 进入。
+      - '127.0.0.1:8990:3001'
+    volumes:
+      # SQLite 数据持久化到宿主机
+      - /var/lib/qwerty-learner/data:/app/data
+    restart: unless-stopped
+    networks:
+      public-gateway:
+        aliases:
+          - qwerty-learner
+
+networks:
+  # Created and owned by the standalone gateway-nginx project.
+  public-gateway:
+    external: true
+    name: public-gateway

@@ -1,0 +1,19 @@
+# 本地依赖与构建产物不进入 Docker 构建上下文
+node_modules
+build
+data
+
+# 版本控制与开发环境
+.git
+.github
+.husky
+.idea
+.vscode
+.claude
+*.log
+.DS_Store
+
+# 测试产物
+test-results
+playwright-report
+blob-report

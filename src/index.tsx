@@ -1,7 +1,9 @@
 import Loading from './components/Loading'
 import './index.css'
+import { AuthProvider, RequireAuth } from '@/auth/AuthContext'
 import { ErrorBook } from './pages/ErrorBook'
 import { FriendLinks } from './pages/FriendLinks'
+import LoginPage from './pages/Login'
 import MobilePage from './pages/Mobile'
 import TypingPage from './pages/Typing'
 import { isOpenDarkModeAtom } from '@/store'
@@ -49,25 +51,77 @@ function Root() {
 
   return (
     <React.StrictMode>
-      <BrowserRouter basename={REACT_APP_DEPLOY_ENV === 'pages' ? '/qwerty-learner' : ''}>
-        <Suspense fallback={<Loading />}>
-          <Routes>
-            {isMobile ? (
-              <Route path="/*" element={<Navigate to="/mobile" />} />
-            ) : (
-              <>
-                <Route index element={<TypingPage />} />
-                <Route path="/gallery" element={<GalleryPage />} />
-                <Route path="/analysis" element={<AnalysisPage />} />
-                <Route path="/error-book" element={<ErrorBook />} />
-                <Route path="/friend-links" element={<FriendLinks />} />
-                <Route path="/*" element={<Navigate to="/" />} />
-              </>
-            )}
-            <Route path="/mobile" element={<MobilePage />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter basename={REACT_APP_DEPLOY_ENV === 'pages' ? '/qwerty-learner' : ''}>
+          <Suspense fallback={<Loading />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              {isMobile ? (
+                <Route
+                  path="/*"
+                  element={
+                    <RequireAuth>
+                      <Navigate to="/mobile" />
+                    </RequireAuth>
+                  }
+                />
+              ) : (
+                <>
+                  <Route
+                    index
+                    element={
+                      <RequireAuth>
+                        <TypingPage />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/gallery"
+                    element={
+                      <RequireAuth>
+                        <GalleryPage />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/analysis"
+                    element={
+                      <RequireAuth>
+                        <AnalysisPage />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/error-book"
+                    element={
+                      <RequireAuth>
+                        <ErrorBook />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/friend-links"
+                    element={
+                      <RequireAuth>
+                        <FriendLinks />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route path="/*" element={<Navigate to="/" />} />
+                </>
+              )}
+              <Route
+                path="/mobile"
+                element={
+                  <RequireAuth>
+                    <MobilePage />
+                  </RequireAuth>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
       <Analytics />
     </React.StrictMode>
   )

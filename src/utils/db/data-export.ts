@@ -1,4 +1,6 @@
 import { db } from '.'
+import { getToken } from '@/api/client'
+import { pushAllData } from '../sync'
 import { getCurrentDate, recordDataAction } from '..'
 
 export type ExportProgress = {
@@ -61,6 +63,13 @@ export async function importDatabase(onStart: () => void, callback: (importProgr
 
     const [wordCount, chapterCount] = await Promise.all([db.wordRecords.count(), db.chapterRecords.count()])
     recordDataAction({ type: 'import', size: file.size, wordCount, chapterCount })
+
+    // 登录状态下, 导入完成后用导入的数据替换 SQLite 中该用户的旧数据
+    if (getToken()) {
+      pushAllData(true).catch(() => {
+        // 同步失败不阻塞导入流程, 下个同步周期会合并
+      })
+    }
   })
 
   input.click()
