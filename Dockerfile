@@ -2,12 +2,11 @@ FROM node:20 AS build
 
 WORKDIR /app
 
-# 先复制依赖清单，未改 package.json 时可复用 npm install 缓存层
-COPY package.json ./
-RUN npm config set registry https://registry.npmmirror.com
-RUN npm install
+# 与本地一致：用 yarn + lockfile 安装，未改依赖时可复用缓存层
+COPY package.json yarn.lock .yarnrc ./
+RUN yarn install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN yarn build
 
 # 运行 Node 服务: 同时提供 API(SQLite) 与前端静态文件
 FROM node:20
