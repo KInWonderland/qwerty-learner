@@ -4,19 +4,30 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      # 保留本机调试入口；公网流量统一从 gateway-nginx 进入。
       - '127.0.0.1:8990:3001'
+    environment:
+      PORT: ${PORT:-3001}
+      SQLITE_PATH: ${SQLITE_PATH:-/app/data/qwerty-learner.db}
     volumes:
-      # SQLite 数据持久化到宿主机
       - /var/lib/qwerty-learner/data:/app/data
     restart: unless-stopped
     networks:
       public-gateway:
-        aliases:
-          - qwerty-learner
-
+        aliases: [qwerty-learner]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: public-gateway
+      traefik.http.routers.qwerty.rule: Host(`${APP_DOMAIN:?Set APP_DOMAIN}`)
+      traefik.http.routers.qwerty.entrypoints: websecure
+      traefik.http.routers.qwerty.tls.certresolver: letsencrypt
+      traefik.http.routers.qwerty.service: qwerty
+      traefik.http.services.qwerty.loadbalancer.server.port: "${PORT:-3001}"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:' + process.env.PORT + '/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
 networks:
-  # Created and owned by the standalone gateway-nginx project.
   public-gateway:
     external: true
     name: public-gateway

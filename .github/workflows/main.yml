@@ -20,47 +20,39 @@ jobs:
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          BASE_PATH: ${{ secrets.BASE_PATH }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: BASE_PATH
           command_timeout: 30m
           script: |
             set -eu
+            BASE_PATH="${BASE_PATH:-${{ secrets.BASE_PATH }}}"
+            BASE_PATH="${BASE_PATH%/}"
+            export BASE_PATH
+            export ENV_REPO="${BASE_PATH}/env"
+            export RUNTIME_ROOT="${BASE_PATH}/.deploy-runtime"
 
-            # 同步独立环境仓库，确保网关域名和证书路径已配置。
-            cd /home/ubuntu/env
-            git pull --ff-only
-            test -f /home/ubuntu/env/gateway-nginx/.env
+            # 1. 拉取主路径/env最新代码
+            echo "=== Pulling latest env ==="
+            (
+              flock 9
+              cd "${BASE_PATH}/env"
+              git pull --ff-only
+            ) 9>"${BASE_PATH}/.env.lock"
 
-            # 网关与 Qwerty 共用此 Docker 网络。
-            docker network inspect public-gateway >/dev/null 2>&1 || \
-              docker network create public-gateway || \
-              docker network inspect public-gateway >/dev/null 2>&1
-
-            PROJECT_NAME=qwerty-learner
-            PROJECT_DIR=/home/ubuntu/$PROJECT_NAME
-            REPOSITORY=git@github.com:KInWonderland/qwerty-learner.git
-
-            cd /home/ubuntu
-            if [ -e "$PROJECT_DIR" ]; then
-              if ! git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-                echo "目录已存在但不是 Git 仓库: $PROJECT_DIR"
-                exit 1
-              fi
-
-              cd "$PROJECT_DIR"
-              git remote set-url origin "$REPOSITORY"
+            # 2. 进入项目主路径拉取项目最新代码并执行部署
+            cd "${BASE_PATH}/qwerty-learner"
+            # Serialize checkout updates as well as container deployment.
+            (
+              flock 7
               git fetch origin master
-              git reset --hard origin/master
-            else
-              git clone --branch master "$REPOSITORY" "$PROJECT_DIR"
-              cd "$PROJECT_DIR"
-            fi
-
-            export DOCKER_BUILDKIT=1
-            export COMPOSE_DOCKER_CLI_BUILD=1
-            docker compose up -d --build --remove-orphans
+              git merge --ff-only origin/master
+              bash scripts/deploy.sh
+            ) 7>"${BASE_PATH}/.qwerty-learner-checkout.lock"
 
       - name: Send Telegram notification
         if: always()

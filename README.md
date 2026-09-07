@@ -69,7 +69,7 @@ GitHub Pages: <https://realkai42.github.io/qwerty-learner/>
 
 1. `/home/ubuntu` 下如果已有 `qwerty-learner`，它必须是 Git 工作树；如果不存在，Action 会自动从 `git@github.com:KInWonderland/qwerty-learner.git` 克隆 `master` 分支。
 2. 服务器登录用户需要配置 GitHub Deploy Key，以便 Action 在首次部署时执行 `git clone`。
-3. `/home/ubuntu/env/gateway-nginx/.env` 已配置 `qwerty.codeplain.cloud` 和腾讯云证书路径。
+3. `/home/ubuntu/env/qwerty-learner/.env` 配置 APP_DOMAIN，独立 gateway-traefik 管理 Let’s Encrypt HTTPS。
 4. `public-gateway` Docker 网络已创建；网关会通过 `qwerty-learner:3001` 访问本服务。
 
 在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中配置：
@@ -361,3 +361,10 @@ JS API 来自于[react-code-game](https://github.com/webzhd/react-code-game) ，
 ## 🌟 Stargazers over time
 
 [![Stargazers over time](https://starchart.cc/Realkai42/qwerty-learner.svg)](https://starchart.cc/Realkai42/qwerty-learner)
+
+
+## Traefik 部署
+
+生产环境使用 `/home/ubuntu/env/qwerty-learner/.env`，部署执行 `bash scripts/deploy.sh`。
+域名由 APP_DOMAIN 设置，Compose labels 自动注册到网关；不再读取旧 Nginx 环境文件。
+SQLite 保持 `/var/lib/qwerty-learner/data` 持久化，本次不迁移到 MySQL。容器更新前备份 SQLite（使用 SQLite 在线 backup API，或停容器后复制整个数据目录）。
