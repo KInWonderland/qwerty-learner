@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json yarn.lock .yarnrc ./
 RUN yarn install --frozen-lockfile
 COPY . .
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 RUN yarn build
 
 # 运行 Node 服务: 同时提供 API(SQLite) 与前端静态文件
