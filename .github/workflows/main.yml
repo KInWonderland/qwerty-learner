@@ -22,11 +22,13 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           BASE_PATH: ${{ secrets.BASE_PATH }}
+          DEPLOY_REPOSITORY: ${{ github.repository }}
+          DEPLOY_SERVER_URL: ${{ github.server_url }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: BASE_PATH
+          envs: BASE_PATH,DEPLOY_REPOSITORY,DEPLOY_SERVER_URL
           command_timeout: 30m
           script: |
             set -eu
@@ -36,21 +38,48 @@ jobs:
             export ENV_REPO="${BASE_PATH}/env"
             export RUNTIME_ROOT="${BASE_PATH}/.deploy-runtime"
 
-            # 1. 拉取主路径/env最新代码
-            echo "=== Pulling latest env ==="
+            GIT_HOST=${DEPLOY_SERVER_URL#https://}
+            mkdir -p "${BASE_PATH}"
+
+            # 1. 拉取或初始化主路径/env仓库
+            echo "=== Ensuring latest env ==="
+            ENV_DIR="${BASE_PATH}/env"
+            ENV_REPO_URL="git@$GIT_HOST:${DEPLOY_REPOSITORY%%/*}/env.git"
             (
               flock 9
-              cd "${BASE_PATH}/env"
-              git pull --ff-only
+              if [ ! -e "$ENV_DIR" ]; then
+                git clone --branch main --single-branch "$ENV_REPO_URL" "$ENV_DIR"
+              elif [ ! -d "$ENV_DIR/.git" ]; then
+                echo "Deployment directory exists but is not a Git checkout: $ENV_DIR" >&2
+                exit 1
+              else
+                cd "$ENV_DIR"
+                git pull --ff-only
+              fi
             ) 9>"${BASE_PATH}/.env.lock"
 
             # 2. 进入项目主路径拉取项目最新代码并执行部署
-            cd "${BASE_PATH}/qwerty-learner"
-            # Serialize checkout updates as well as container deployment.
+            PROJECT_DIR="${BASE_PATH}/qwerty-learner"
+            REPOSITORY="git@$GIT_HOST:$DEPLOY_REPOSITORY.git"
             (
               flock 7
-              git fetch origin master
-              git merge --ff-only origin/master
+              if [ ! -e "$PROJECT_DIR" ]; then
+                git clone --branch master --single-branch "$REPOSITORY" "$PROJECT_DIR"
+              elif [ ! -d "$PROJECT_DIR/.git" ]; then
+                echo "Deployment directory exists but is not a Git checkout: $PROJECT_DIR" >&2
+                exit 1
+              fi
+              cd "$PROJECT_DIR"
+              if [ "$(git branch --show-current)" != master ]; then
+                echo "Expected master branch; resolve the existing checkout before deploying." >&2
+                exit 1
+              fi
+              if [ -n "$(git status --porcelain)" ]; then
+                echo "Checkout has local changes; resolve them before deploying." >&2
+                exit 1
+              fi
+              git fetch "$REPOSITORY" master
+              git merge --ff-only FETCH_HEAD
               bash scripts/deploy.sh
             ) 7>"${BASE_PATH}/.qwerty-learner-checkout.lock"
 

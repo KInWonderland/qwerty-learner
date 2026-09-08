@@ -20,4 +20,5 @@ cd "$PROJECT_DIR"
 compose() { docker compose --env-file "$SNAPSHOT" "$@"; }
 compose config --quiet
 docker network inspect public-gateway >/dev/null 2>&1 || docker network create public-gateway
+mkdir -p /var/lib/qwerty-learner/data
 compose up -d --build --wait --wait-timeout 180
