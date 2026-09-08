@@ -13,7 +13,7 @@ SNAPSHOT=$(mktemp "$RUNTIME_ROOT/$PROJECT_NAME.XXXXXX")
 trap 'rm -f "$SNAPSHOT"' EXIT
 (
   flock 9
-  if [ "${SYNC_ENV:-1}" = 1 ]; then git -C "$ENV_REPO" pull --ff-only; fi
+  if [ "${SYNC_ENV:-1}" = 1 ]; then git -C "$ENV_REPO" pull --ff-only origin main; fi
   install -m 600 "$ENV_REPO/$PROJECT_NAME/.env" "$SNAPSHOT"
 ) 9>"$RUNTIME_ROOT/env.lock"
 cd "$PROJECT_DIR"

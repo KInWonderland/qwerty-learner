@@ -39,7 +39,8 @@ jobs:
             export RUNTIME_ROOT="${BASE_PATH}/.deploy-runtime"
 
             GIT_HOST=${DEPLOY_SERVER_URL#https://}
-            mkdir -p "${BASE_PATH}"
+            mkdir -p "${BASE_PATH}" "${RUNTIME_ROOT}"
+            chmod 700 "${RUNTIME_ROOT}"
 
             # 1. 拉取或初始化主路径/env仓库
             echo "=== Ensuring latest env ==="
@@ -54,9 +55,9 @@ jobs:
                 exit 1
               else
                 cd "$ENV_DIR"
-                git pull --ff-only
+                git pull --ff-only origin main
               fi
-            ) 9>"${BASE_PATH}/.env.lock"
+            ) 9>"${RUNTIME_ROOT}/env.lock"
 
             # 2. 进入项目主路径拉取项目最新代码并执行部署
             PROJECT_DIR="${BASE_PATH}/qwerty-learner"
