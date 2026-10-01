@@ -36,6 +36,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
+          provenance: false
           tags: |
             ${{ secrets.SWR_REGISTRY }}/${{ secrets.SWR_NAMESPACE }}/qwerty-learner:${{ steps.vars.outputs.short_sha }}
             ${{ secrets.SWR_REGISTRY }}/${{ secrets.SWR_NAMESPACE }}/qwerty-learner:latest
