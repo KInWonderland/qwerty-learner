@@ -63,24 +63,20 @@ GitHub Pages: <https://realkai42.github.io/qwerty-learner/>
 
 ### Docker / 腾讯云服务器
 
-生产环境通过 `.github/workflows/main.yml` 自动部署。向 `master` 分支推送后，GitHub Actions 会 SSH 连接服务器，在 `/home/ubuntu/qwerty-learner` 构建并重启 Docker 服务，同时向 Telegram 发送成功或失败通知。
+推送 `master` 或手动触发 `.github/workflows/main.yml` 后，GitHub Actions 构建镜像并推送到华为 SWR，发布提交短 SHA 和 `latest` 两个标签。服务器上的 Watchtower 检测新镜像并更新容器。
 
-服务器需要提前准备：
+环境文件放在项目根目录 `.env`，随代码提交并复制进镜像；容器启动时通过 `node --env-file=.env server/index.js` 加载。Compose 读取同一份本地文件中的镜像地址和路由配置，不再向业务容器注入 PORT、SQLITE_PATH。
 
-1. `/home/ubuntu` 下如果已有 `qwerty-learner`，它必须是 Git 工作树；如果不存在，Action 会自动从 `git@github.com:KInWonderland/qwerty-learner.git` 克隆 `master` 分支。
-2. 服务器登录用户需要配置 GitHub Deploy Key，以便 Action 在首次部署时执行 `git clone`。
-3. `/home/ubuntu/env/qwerty-learner/.env` 配置 APP_DOMAIN，独立 gateway-traefik 管理 Let’s Encrypt HTTPS。
-4. `public-gateway` Docker 网络已创建；网关会通过 `qwerty-learner:3001` 访问本服务。
+服务器需要提前准备 `public-gateway` Docker 网络、网关和 SWR 登录凭据。在服务器的项目目录首次执行 `bash scripts/deploy.sh`；从旧环境注入方式切换时也执行一次，让 Compose 重新创建容器。SQLite 数据继续保存在 `/var/lib/qwerty-learner/data`。
 
 在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中配置：
 
 | Secret | 用途 |
 | --- | --- |
-| `SERVER_HOST` | 服务器公网 IP 或域名 |
-| `SERVER_USER` | SSH 登录用户 |
-| `SERVER_SSH_KEY` | SSH 私钥全文 |
-| `TELEGRAM_TO` | Telegram chat ID |
-| `TELEGRAM_TOKEN` | Telegram Bot Token |
+| `SWR_REGISTRY` | SWR 仓库地址 |
+| `SWR_NAMESPACE` | SWR 命名空间 |
+| `SWR_USERNAME` | SWR 登录用户名 |
+| `SWR_PASSWORD` | SWR 登录密码 |
 
 部署完成后访问：<https://qwerty.codeplain.cloud/>。
 
@@ -365,6 +361,6 @@ JS API 来自于[react-code-game](https://github.com/webzhd/react-code-game) ，
 
 ## Traefik 部署
 
-生产环境使用 `/home/ubuntu/env/qwerty-learner/.env`，部署执行 `bash scripts/deploy.sh`。
-域名由 APP_DOMAIN 设置，Compose labels 自动注册到网关；不再读取旧 Nginx 环境文件。
+生产环境使用 `/home/ubuntu/qwerty-learner/.env`，部署执行 `bash scripts/deploy.sh`。
+域名由 APP_DOMAIN 设置，Compose labels 自动注册到网关。修改域名、端口或持久化路径时，需要同步服务器代码并重新执行部署脚本。
 SQLite 保持 `/var/lib/qwerty-learner/data` 持久化，本次不迁移到 MySQL。容器更新前备份 SQLite（使用 SQLite 在线 backup API，或停容器后复制整个数据目录）。
